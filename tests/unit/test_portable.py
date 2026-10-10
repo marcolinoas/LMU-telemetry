@@ -16,7 +16,7 @@ def test_static_frontend_does_not_mask_api_or_missing_assets(tmp_path):
     (web / 'assets').mkdir()
     (web / 'assets/app.js').write_text('console.log(1)')
     client = TestClient(create_app(tmp_path, cache_dir=tmp_path / 'cache', frontend_dir=web))
-    for path in ('/', '/ideal', '/recordings'):
+    for path in ('/', '/ideal', '/recordings', '/sharing'):
         assert client.get(path).text == '<html>app</html>'
     assert client.get('/assets/app.js').text == 'console.log(1)'
     assert client.get('/api/health').status_code == 200

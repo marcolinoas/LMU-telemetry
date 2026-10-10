@@ -51,7 +51,7 @@ with tempfile.TemporaryDirectory(prefix='LMU smoke é ') as temp:
                     time.sleep(.1)
             else:
                 raise RuntimeError('Server never became healthy')
-            for path in ('/', '/ideal', '/recordings'):
+            for path in ('/', '/ideal', '/recordings', '/sharing'):
                 assert b'<html' in get(path)
             sessions = json.loads(get('/api/sessions'))['sessions']
             assert sessions, 'Fixture recording was not discovered'
@@ -60,6 +60,22 @@ with tempfile.TemporaryDirectory(prefix='LMU smoke é ') as temp:
             name = fixture.name
             assert json.loads(get('/api/sessions/' + quote(name) + '/laps'))['laps']
             assert get('/api/sessions/' + quote(name) + '/map')
+            def write(method, path, body=None):
+                request = urllib.request.Request(url + path, method=method,
+                    data=None if body is None else json.dumps(body).encode(),
+                    headers={'Content-Type': 'application/json'})
+                with urllib.request.urlopen(request, timeout=30) as response:
+                    return json.loads(response.read())
+            publish_dir = root / 'published laps é'
+            write('PUT', '/api/sharing/settings', {'publish_dir': str(publish_dir)})
+            published = write('POST', '/api/sessions/' + quote(name) + '/laps/2/share')
+            lap_file = publish_dir / published['filename']
+            assert lap_file.is_file()
+            # Publication validates package data in the frozen process,
+            # with no Drive network dependency in this smoke test.
+            assert json.loads(get('/api/sharing'))['published'][0]['id'] == published['id']
+            write('DELETE', '/api/sharing/published/' + published['id'])
+            assert not lap_file.exists()
         finally:
             proc.terminate()
             proc.wait(timeout=15)

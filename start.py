@@ -61,6 +61,7 @@ def run_worker(args) -> int:
     if args.readiness is None:
         raise ValueError("API worker requires a readiness file")
     import socket
+    from contextlib import asynccontextmanager
     import uvicorn
     from lmu_telemetry.api.app import create_app
     app = create_app(args.recordings, cache_dir=state_dir() / "cache", frontend_dir=frontend_dir())
@@ -69,9 +70,13 @@ def run_worker(args) -> int:
     # this worker from allocation through serving, avoiding port-selection races.
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
-        @app.on_event("startup")
-        async def ready():
-            args.readiness.write_text(json.dumps({"url": f"http://127.0.0.1:{sock.getsockname()[1]}"}), encoding="utf-8")
+        lifecycle = app.router.lifespan_context
+        @asynccontextmanager
+        async def ready(application):
+            async with lifecycle(application):
+                args.readiness.write_text(json.dumps({"url": f"http://127.0.0.1:{sock.getsockname()[1]}"}), encoding="utf-8")
+                yield
+        app.router.lifespan_context = ready
         server.run(sockets=[sock])
     return 0
 

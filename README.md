@@ -16,6 +16,7 @@
 - **Lap Comparison** — Side-by-side overlay of any two laps (cross-session, cross-driver)
 - **Corner Analysis** — Per-corner breakdown with coaching tips (braking point, apex speed, throttle application)
 - **Delta Strip** — Visual time-gain/loss bar across the lap
+- **Shared lap folders** — Publish selected laps through Google Drive Desktop, sync friends’ public folders, and compare their laps offline
 - **Reference Lap** — Pick any lap as reference and see the delta everywhere
 - **Auto-rotating Track Map** — PCA-based projection that fills available space
 - **Desktop Launcher** — Pick your telemetry folder, open the analyzer, and start the live coaching overlay
@@ -40,6 +41,22 @@ Download `LMU-Telemetry-windows-x64.zip` from [GitHub Releases](https://github.c
 4. Keep the launcher open. Each component has its own stop button; closing the launcher stops both. Closing the browser alone leaves the analyzer running.
 
 Settings, caches, and logs are stored in `%LOCALAPPDATA%\LMU Telemetry`, so the extracted app folder can be read-only. Use **Open logs** for startup or game connection failures. Recordings are read from your selected folder and are not bundled.
+
+## Share laps with friends
+
+1. Create a dedicated local folder synced by **Google Drive Desktop**. In Google Drive, share that folder as **Anyone with the link → Viewer**.
+2. Open **Sharing** in LMU Telemetry. Save the local folder's absolute path and, optionally, its public Drive folder URL.
+3. Choose a recording and usable lap, then click **Share lap**. You can also share either selected lap from Compare. The app writes a `.lmulap` file; Drive Desktop handles uploading it.
+4. Give your folder URL to your friends. They add your name and URL under **Friends’ folders** in their own app. No Google login is required in LMU Telemetry.
+5. Sync runs when the analyzer starts and every five minutes while it runs. **Sync now** downloads immediately. Downloaded laps appear in both Compare selectors with friend and driver names and remain available offline.
+
+**Stop sharing** removes the app's published file, which Drive Desktop then removes from Drive. Friends keep copies they already downloaded. Removing a friend stops syncing their folder and also keeps existing copies. A successfully synced folder marks missing files **No longer shared**; a failed sync preserves the previous library and displays an error.
+
+Lap packages include driver/car/circuit metadata, lap and sector times, the full internal comparison trace (speed, pedals, steering and position on the distance grid), and track geometry. They contain neither the whole recording nor raw channels outside the selected lap. Only usable recorded laps can be published; ideal laps are excluded. Publishing is not a confirmation that Drive Desktop has finished uploading.
+
+Friends, sharing settings, downloaded packages and sync history live under `%LOCALAPPDATA%\LMU Telemetry\sharing` on Windows, separate from recordings and trace caches. Public-folder downloads use pinned `gdown`; Google permission, quota, or website changes can cause sync errors. Only `.lmulap` files directly inside a friend's folder are downloaded. Existing files are checked again on each sync to detect replacements; identical content reuses the stored package.
+
+For release validation, test two public folders with actual `.lmulap` files, resource-key URLs where available, stop sharing, offline comparisons after restart, and a private/quota-limited folder. The automated tests use a fake download provider, and the Windows frozen smoke test checks publishing and removal without requiring Drive access.
 
 ## Developer setup
 

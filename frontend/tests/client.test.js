@@ -183,3 +183,10 @@ it('uses the page origin by default, including its assigned port', async () => {
   await createClient({ fetcher }).sessions()
   expect(fetcher.mock.calls[0][0]).toBe(`${globalThis.location.origin}/api/sessions`)
 })
+
+it('can align a shared trace to the comparison reference for corner maps', async () => {
+  const fetcher = respond({ series: {} })
+  const client = createClient({ base: 'http://x/', fetcher })
+  await client.trace('shared-id', 2, { full: true, reference: 'local.duckdb' })
+  expect(new URL(fetcher.mock.calls[0][0]).searchParams.get('reference')).toBe('local.duckdb')
+})
