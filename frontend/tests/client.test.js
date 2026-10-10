@@ -177,3 +177,9 @@ describe('the api client', () => {
     await expect(client.ideal('a.duckdb')).rejects.toThrow(/1 usable lap of 3/)
   })
 })
+
+it('uses the page origin by default, including its assigned port', async () => {
+  const fetcher = respond({ sessions: [] })
+  await createClient({ fetcher }).sessions()
+  expect(fetcher.mock.calls[0][0]).toBe(`${globalThis.location.origin}/api/sessions`)
+})

@@ -22,6 +22,7 @@ from pathlib import Path
 import numpy as np
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from ..cache.store import ArrayCache, CacheError, SummaryCache, source_key
 from ..core import (
@@ -98,6 +99,7 @@ def create_app(
     recordings_dir: "str | Path | None" = None,
     pool: "SessionPool | None" = None,
     cache_dir: "str | Path | None" = None,
+    frontend_dir: "str | Path | None" = None,
 ) -> FastAPI:
     """Build the application. *recordings_dir* is where sessions are read from."""
     root = Path(recordings_dir) if recordings_dir else default_recordings_dir()
@@ -603,6 +605,24 @@ def create_app(
                 "other": _corner_metrics(c.other),
             } for c in comparisons],
         }
+
+    if frontend_dir is not None:
+        web_root = Path(frontend_dir).resolve()
+        if not (web_root / "index.html").is_file():
+            raise ValueError(f"Built frontend missing at {web_root}")
+
+        @app.get("/{path:path}", include_in_schema=False)
+        def frontend(path: str):
+            if path == "api" or path.startswith("api/"):
+                raise HTTPException(404, "Not Found")
+            candidate = (web_root / path).resolve()
+            if not candidate.is_relative_to(web_root):
+                raise HTTPException(404, "Not Found")
+            if candidate.is_file():
+                return FileResponse(candidate)
+            if path in ("", "ideal", "recordings"):
+                return FileResponse(web_root / "index.html")
+            raise HTTPException(404, "Not Found")
 
     return app
 

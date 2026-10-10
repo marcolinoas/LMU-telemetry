@@ -18,7 +18,7 @@
 - **Delta Strip** — Visual time-gain/loss bar across the lap
 - **Reference Lap** — Pick any lap as reference and see the delta everywhere
 - **Auto-rotating Track Map** — PCA-based projection that fills available space
-- **One-Click Launcher** — `start.py` GUI to pick your telemetry folder and go
+- **Desktop Launcher** — Pick your telemetry folder, open the analyzer, and start the live coaching overlay
 
 ## Screenshots
 
@@ -30,61 +30,54 @@
 
 ---
 
-## Quick Start
+## Windows portable download
 
-### Prerequisites
+Download `LMU-Telemetry-windows-x64.zip` from the **Windows portable package** workflow's artifacts on GitHub (a GitHub login is required). Extract the entire ZIP and double-click **LMU Telemetry.exe**. Keep its `_internal` folder beside the executable. Windows 10/11 x64 is supported; Python, Node.js, npm, and administrator access are not required. The first release is unsigned.
 
-- Python 3.10+
-- Node.js 18+
-- Le Mans Ultimate telemetry files (DuckDB format)
+1. Browse to the folder containing your `.duckdb` recordings.
+2. **Start analyzer** opens the analysis interface in your default browser.
+3. **Start live overlay** independently starts coaching. Start LMU and load a session; its shared-memory interface must be available. The selected folder must contain a usable reference recording matching the circuit. Reference selection is automatic; the overlay uses the game monitor, top-center placement, and default scale. Use borderless/windowed mode if exclusive fullscreen hides the overlay.
+4. Keep the launcher open. Each component has its own stop button; closing the launcher stops both. Closing the browser alone leaves the analyzer running.
 
-### 1. Clone & install
+Settings, caches, and logs are stored in `%LOCALAPPDATA%\LMU Telemetry`, so the extracted app folder can be read-only. Use **Open logs** for startup or game connection failures. Recordings are read from your selected folder and are not bundled.
 
-```bash
-git clone https://github.com/your-user/LMU-telemetry.git
-cd LMU-telemetry
+## Developer setup
 
-# Backend
+Use Python 3.11+ and Node.js 22:
+
+```powershell
 python -m venv .venv
-.venv\Scripts\activate      # Windows
-pip install -r requirements.txt
-
-# Frontend
-cd frontend
-npm install
+.venv\Scripts\python.exe -m pip install -e ".[dev]"
+npm --prefix frontend ci
+npm --prefix frontend run build
+.venv\Scripts\python.exe start.py
 ```
 
-### 2. Run
+For frontend hot reload, run `python -m lmu_telemetry.api --recordings <folder>` and `npm --prefix frontend run dev` in separate terminals. Open [http://localhost:5173](http://localhost:5173). The existing API and overlay CLI commands remain available.
 
-**Option A — One-click launcher (Windows)**
+## Build the Windows package
 
-```bash
-python start.py
+On Windows with **Python 3.13 x64** and **Node.js 22** available, run:
+
+```powershell
+./packaging/build-windows.ps1
 ```
 
-A small GUI opens where you pick your telemetry folder. Backend + frontend start automatically and the browser opens.
+The script selects Python 3.13 through `py -3.13` (falling back to `python` on PATH), creates an isolated build environment, installs the committed Python lock, runs `npm ci`, builds the frontend, freezes the current implementation with PyInstaller, smoke-tests the executable, and creates `dist/LMU-Telemetry-windows-x64.zip`. Build on Windows; macOS builds cannot produce this Windows executable.
 
-**Option B — Manual**
+If Windows PowerShell blocks script execution, run from the repository root:
 
-```bash
-# Terminal 1 — Backend
-set TELEMETRY_DIR=F:\path\to\Telemetry
-python -m uvicorn backend.main:app --port 8001
-
-# Terminal 2 — Frontend
-cd frontend
-npm run dev
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\packaging\build-windows.ps1
 ```
 
-Open [http://localhost:5173](http://localhost:5173).
+Python 3.14 can remain installed alongside 3.13; the build selects 3.13 explicitly. Check its availability with `py -3.13 --version`.
 
-**Option C — Docker**
+The **Windows portable package** GitHub Actions workflow runs manually or on `v*` tags and uploads the ZIP after tests pass. It does not publish a GitHub Release automatically.
 
-```bash
-docker compose up --build
-```
+To update the Python build lock, use `uv pip compile packaging/requirements-windows.in --python-version 3.13 --python-platform x86_64-pc-windows-msvc -o packaging/requirements-windows.lock`, then rebuild and test on Windows.
 
-Frontend at `http://localhost:3000`, API at `http://localhost:8001`.
+Before distributing a release, test on Windows without Python/Node installed: analyzer navigation and lap comparisons, actual LMU coaching and unavailable-game errors, independent start/stop and launcher shutdown, an extraction path with spaces/non-ASCII characters, and a read-only app directory. CI covers frozen API processing, paths with spaces/non-ASCII characters, no runtimes on PATH, and occupied port 8000; actual in-game behavior still needs a Windows machine running LMU.
 
 ---
 
@@ -92,19 +85,15 @@ Frontend at `http://localhost:3000`, API at `http://localhost:8001`.
 
 ```
 LMU-telemetry/
-├── backend/          FastAPI + DuckDB (read-only)
-│   ├── main.py       API routes
-│   ├── duckdb_reader.py  Telemetry data access
-│   ├── corner_detector.py  Corner detection (curvature-based)
-│   ├── delta_calc.py     Delta time calculation
-│   └── lap_processor.py  Lap data processing
-├── frontend/         Vue 3 + Vite + Pinia
-│   └── src/
-│       ├── views/    SessionDashboard, CompareView, CornerDetail, SessionLoader
-│       ├── components/  TrackMap, TelemetryChart, DeltaStrip, CoachingTip
-│       └── stores/   Pinia telemetry store
-├── start.py          One-click launcher GUI
-└── docker-compose.yml
+├── lmu_telemetry/     Current telemetry implementation
+│   ├── api/          FastAPI routes and bundled web interface serving
+│   ├── core/         Lap processing, geometry and coaching
+│   ├── live/         Windows shared-memory coaching overlay
+│   └── data/tracks/  Track definitions bundled in the portable app
+├── frontend/         Vue 3 + Vite browser interface
+├── start.py          Desktop launcher and packaged worker entrypoint
+├── packaging/        Windows build, dependency lock and smoke test
+└── backend/          Legacy implementation (excluded from portable app)
 ```
 
 ---
@@ -138,7 +127,7 @@ Want to use this commercially? Contact the author first.
 - [ ] GUI profile presets (Qualifying / Race / Endurance)
 - [ ] Save/load GUI profiles (JSON)
 - [ ] Improved unit detection from metadata
-- [ ] Standalone `.exe` build
+- [x] Portable Windows `.exe` build workflow
 - [ ] Support for other DuckDB-based simulators
 
 ---
