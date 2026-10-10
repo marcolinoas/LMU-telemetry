@@ -32,7 +32,7 @@
 
 ## Windows portable download
 
-Download `LMU-Telemetry-windows-x64.zip` from the **Windows portable package** workflow's artifacts on GitHub (a GitHub login is required). Extract the entire ZIP and double-click **LMU Telemetry.exe**. Keep its `_internal` folder beside the executable. Windows 10/11 x64 is supported; Python, Node.js, npm, and administrator access are not required. The first release is unsigned.
+Download `LMU-Telemetry-windows-x64.zip` from [GitHub Releases](https://github.com/marcolinoas/LMU-telemetry/releases). Test builds are also available in the **Windows portable package** workflow's artifacts (a GitHub login is required for artifacts). Extract the entire ZIP and double-click **LMU Telemetry.exe**. Keep its `_internal` folder beside the executable. Windows 10/11 x64 is supported; Python, Node.js, npm, and administrator access are not required. The first release is unsigned.
 
 1. Browse to the folder containing your `.duckdb` recordings.
 2. **Start analyzer** opens the analysis interface in your default browser.
@@ -73,7 +73,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\packaging\build-window
 
 Python 3.14 can remain installed alongside 3.13; the build selects 3.13 explicitly. Check its availability with `py -3.13 --version`.
 
-The **Windows portable package** GitHub Actions workflow runs manually or on `v*` tags and uploads the ZIP after tests pass. It does not publish a GitHub Release automatically.
+The **Windows portable package** GitHub Actions workflow builds on pushes to `main` and `codex/windows-portable-package`, pull requests, manual runs, and `v*` tags. Successful runs upload the ZIP as an artifact. Tag pushes also publish the ZIP to GitHub Releases after the Windows build, frozen-app smoke test, Python tests, and frontend tests pass. Tags containing a hyphen (for example `v1.0.0-rc.1`) produce a prerelease. Rerunning a tag build replaces its ZIP asset.
+
+To test from your fork, push the branch and open **Actions → Windows portable package**. If Actions is disabled on the fork, enable it first. Manual **Run workflow** becomes available once the workflow exists on the default branch; branch pushes can trigger it before that.
+
+To publish a release from a tested commit, choose an unused `v*` tag and push that tag to `origin`. The workflow uses GitHub's automatic `GITHUB_TOKEN`; no personal token or SSH secret is needed. Publication uses the repository receiving the tag, so testing on the fork publishes to the fork.
 
 To update the Python build lock, use `uv pip compile packaging/requirements-windows.in --python-version 3.13 --python-platform x86_64-pc-windows-msvc -o packaging/requirements-windows.lock`, then rebuild and test on Windows.
 
