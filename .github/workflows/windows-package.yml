@@ -24,7 +24,15 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Build and smoke-test portable package
         shell: pwsh
-        run: ./packaging/build-windows.ps1
+        run: |
+          try {
+            & ./packaging/build-windows.ps1 2>&1 | Tee-Object -FilePath windows-build.log
+          } catch {
+            $details = (Get-Content windows-build.log -Tail 35 -ErrorAction SilentlyContinue | Out-String) + $_.Exception.Message
+            $details = $details.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Output "::error title=Windows packaging failed::$details"
+            throw
+          }
       - name: Python tests
         shell: pwsh
         run: |
