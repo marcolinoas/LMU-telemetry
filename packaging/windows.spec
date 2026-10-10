@@ -1,5 +1,6 @@
 # Build from the repository root with packaging/build-windows.ps1.
 from pathlib import Path
+from PyInstaller.utils.hooks import copy_metadata
 root = Path(SPECPATH).parent
 
 a = Analysis(
@@ -8,7 +9,7 @@ a = Analysis(
     binaries=[],
     datas=[(str(root / 'frontend' / 'dist'), 'frontend/dist'),
            (str(root / 'lmu_telemetry' / 'data' / 'tracks'), 'lmu_telemetry/data/tracks'),
-           (str(root / 'LICENSE'), '.')],
+           (str(root / 'LICENSE'), '.')] + copy_metadata('duckdb'),
     hiddenimports=['uvicorn.logging', 'uvicorn.loops.asyncio',
                    'uvicorn.protocols.http.h11_impl', 'uvicorn.lifespan.on'],
     hookspath=[], hooksconfig={}, runtime_hooks=[],
